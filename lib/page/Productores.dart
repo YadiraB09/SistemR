@@ -9,28 +9,41 @@ class Productores extends StatefulWidget {
 
 class _ProductoresState extends State<Productores> {
   final TextEditingController _nombreController = TextEditingController();
+  final TextEditingController _cedulaController = TextEditingController();
   final TextEditingController _precioController = TextEditingController();
+  final TextEditingController _searchController = TextEditingController();
 
   List<Map<String, dynamic>> _productores = [];
   Map<String, List<double>> _litrosDiarios = {};
+  List<Map<String, dynamic>> _productoresFiltrados = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _productoresFiltrados = _productores;
+  }
 
   void _registrarProductor() {
     final nombre = _nombreController.text;
+    final cedula = _cedulaController.text;
 
     setState(() {
-      _productores.add({'nombre': nombre});
-      _litrosDiarios[nombre] = [for (var i = 0; i < 15; i++) (i + 1) * 2.0]; // Datos simulados
+      _productores.add({'nombre': nombre, 'cedula': cedula});
+      _litrosDiarios[cedula] = [for (var i = 0; i < 15; i++) (i + 1) * 2.0]; // Datos simulados
+      _productoresFiltrados = _productores;
     });
 
     _nombreController.clear();
+    _cedulaController.clear();
   }
 
   void _enviarNotificaciones() {
     final precioPorLitro = double.tryParse(_precioController.text) ?? 0.0;
 
-    for (var productor in _productores) {
+    for (var productor in _productoresFiltrados) {
       final nombre = productor['nombre'];
-      final litros = _litrosDiarios[nombre]!;
+      final cedula = productor['cedula'];
+      final litros = _litrosDiarios[cedula]!;
       final totalLitros = litros.fold(0.0, (prev, element) => prev + element); // Inicializar como double
       final totalPagar = totalLitros * precioPorLitro;
 
@@ -42,6 +55,17 @@ class _ProductoresState extends State<Productores> {
         ),
       );
     }
+  }
+
+  void _searchProductor() {
+    final query = _searchController.text.toLowerCase();
+    setState(() {
+      _productoresFiltrados = _productores.where((productor) {
+        final nombre = productor['nombre'].toLowerCase();
+        final cedula = productor['cedula'];
+        return nombre.contains(query) || cedula.contains(query);
+      }).toList();
+    });
   }
 
   @override
@@ -56,10 +80,29 @@ class _ProductoresState extends State<Productores> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             TextField(
+              controller: _searchController,
+              decoration: InputDecoration(
+                labelText: 'Buscar Productor por Nombre o Cédula',
+                suffixIcon: IconButton(
+                  icon: Icon(Icons.search),
+                  onPressed: _searchProductor,
+                ),
+              ),
+            ),
+            SizedBox(height: 20),
+            TextField(
               controller: _nombreController,
               decoration: InputDecoration(
                 labelText: 'Nombre del Productor',
               ),
+            ),
+            SizedBox(height: 20),
+            TextField(
+              controller: _cedulaController,
+              decoration: InputDecoration(
+                labelText: 'Cédula del Productor',
+              ),
+              keyboardType: TextInputType.number,
             ),
             SizedBox(height: 20),
             ElevatedButton(
@@ -82,13 +125,14 @@ class _ProductoresState extends State<Productores> {
             SizedBox(height: 20),
             Expanded(
               child: ListView.builder(
-                itemCount: _productores.length,
+                itemCount: _productoresFiltrados.length,
                 itemBuilder: (context, index) {
-                  final productor = _productores[index];
+                  final productor = _productoresFiltrados[index];
                   final nombre = productor['nombre'];
+                  final cedula = productor['cedula'];
 
                   return ListTile(
-                    title: Text(nombre),
+                    title: Text('$nombre (Cédula: $cedula)'),
                     subtitle: Text('Productor registrado'),
                   );
                 },

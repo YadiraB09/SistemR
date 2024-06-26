@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+
+
 class Recolectores extends StatefulWidget {
   const Recolectores({Key? key}) : super(key: key);
 
@@ -10,68 +12,88 @@ class Recolectores extends StatefulWidget {
 class _RecolectoresState extends State<Recolectores> {
   final TextEditingController _searchController = TextEditingController();
   final TextEditingController _nombreController = TextEditingController();
+  final TextEditingController _cedulaController = TextEditingController();
   final TextEditingController _litrosController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
 
-  List<Map<String, dynamic>> _productores = [];
+  List<Map<String, String>> _productores = [];
   Map<String, List<double>> _litrosDiarios = {};
+  List<Map<String, String>> _productoresFiltrados = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _productoresFiltrados = _productores;
+  }
 
   void _registrarProductor() {
     if (_formKey.currentState!.validate()) {
       final nombre = _nombreController.text;
+      final cedula = _cedulaController.text;
 
       setState(() {
-        _productores.add({'nombre': nombre});
-        _litrosDiarios[nombre] = [];
+        _productores.add({'nombre': nombre, 'cedula': cedula});
+        _litrosDiarios[cedula] = [];
+        _productoresFiltrados = _productores;
       });
 
       _nombreController.clear();
+      _cedulaController.clear();
     }
   }
 
-  void _actualizarProductor(String viejoNombre, String nuevoNombre) {
+  void _actualizarProductor(String viejoCedula, String nuevoNombre, String nuevoCedula) {
     setState(() {
-      final productorIndex = _productores.indexWhere((p) => p['nombre'] == viejoNombre);
+      final productorIndex = _productores.indexWhere((p) => p['cedula'] == viejoCedula);
       if (productorIndex != -1) {
-        _productores[productorIndex]['nombre'] = nuevoNombre;
-        _litrosDiarios[nuevoNombre] = _litrosDiarios.remove(viejoNombre)!;
+        _productores[productorIndex] = {'nombre': nuevoNombre, 'cedula': nuevoCedula};
+        _litrosDiarios[nuevoCedula] = _litrosDiarios.remove(viejoCedula)!;
+        _productoresFiltrados = _productores;
       }
     });
   }
 
-  void _borrarProductor(String nombre) {
+  void _borrarProductor(String cedula) {
     setState(() {
-      _productores.removeWhere((productor) => productor['nombre'] == nombre);
-      _litrosDiarios.remove(nombre);
+      _productores.removeWhere((productor) => productor['cedula'] == cedula);
+      _litrosDiarios.remove(cedula);
+      _productoresFiltrados = _productores;
     });
   }
 
-  void _registrarLitros(String nombre) {
+  void _registrarLitros(String cedula) {
     if (_litrosController.text.isNotEmpty) {
       final litros = double.parse(_litrosController.text);
 
       setState(() {
-        _litrosDiarios[nombre]!.add(litros);
+        _litrosDiarios[cedula]!.add(litros);
       });
 
       _litrosController.clear();
     }
   }
 
-  void _actualizarLitros(String nombre, int index, double nuevosLitros) {
+  void _actualizarLitros(String cedula, int index, double nuevosLitros) {
     setState(() {
-      _litrosDiarios[nombre]![index] = nuevosLitros;
+      _litrosDiarios[cedula]![index] = nuevosLitros;
     });
   }
 
-  void _borrarLitros(String nombre, int index) {
+  void _borrarLitros(String cedula, int index) {
     setState(() {
-      _litrosDiarios[nombre]!.removeAt(index);
+      _litrosDiarios[cedula]!.removeAt(index);
     });
   }
 
   void _searchRecolector() {
-    // Implementa la lógica de búsqueda de recolectores aquí.
+    final query = _searchController.text.toLowerCase();
+    setState(() {
+      _productoresFiltrados = _productores.where((productor) {
+        final nombre = productor['nombre']!.toLowerCase();
+        final cedula = productor['cedula']!;
+        return nombre.contains(query) || cedula.contains(query);
+      }).toList();
+    });
   }
 
   @override
@@ -87,7 +109,7 @@ class _RecolectoresState extends State<Recolectores> {
             TextFormField(
               controller: _searchController,
               decoration: InputDecoration(
-                labelText: 'Buscar Recolector',
+                labelText: 'Buscar Recolector por Nombre o Cédula',
                 suffixIcon: IconButton(
                   icon: Icon(Icons.search),
                   onPressed: _searchRecolector,
@@ -110,6 +132,18 @@ class _RecolectoresState extends State<Recolectores> {
                     },
                   ),
                   SizedBox(height: 20),
+                  TextFormField(
+                    controller: _cedulaController,
+                    decoration: InputDecoration(labelText: 'Cédula del Productor'),
+                    keyboardType: TextInputType.number,
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Por favor ingrese la cédula del productor';
+                      }
+                      return null;
+                    },
+                  ),
+                  SizedBox(height: 20),
                   ElevatedButton(
                     onPressed: _registrarProductor,
                     child: Text('Registrar Productor'),
@@ -120,17 +154,19 @@ class _RecolectoresState extends State<Recolectores> {
             SizedBox(height: 20),
             Expanded(
               child: ListView.builder(
-                itemCount: _productores.length,
+                itemCount: _productoresFiltrados.length,
                 itemBuilder: (context, index) {
-                  final productor = _productores[index];
-                  final nombre = productor['nombre'];
-                  final litros = _litrosDiarios[nombre] ?? [];
+                  final productor = _productoresFiltrados[index];
+                  final nombre = productor['nombre']!;
+                  final cedula = productor['cedula']!;
+                  final litros = _litrosDiarios[cedula] ?? [];
 
                   return ListTile(
                     title: Text(nombre),
                     subtitle: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        Text('Cédula: $cedula'),
                         for (int i = 0; i < litros.length; i++)
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -162,7 +198,7 @@ class _RecolectoresState extends State<Recolectores> {
                                               TextButton(
                                                 onPressed: () {
                                                   final nuevosLitros = double.parse(_editLitrosController.text);
-                                                  _actualizarLitros(nombre, i, nuevosLitros);
+                                                  _actualizarLitros(cedula, i, nuevosLitros);
                                                   Navigator.of(context).pop();
                                                 },
                                                 child: Text('Actualizar'),
@@ -176,7 +212,7 @@ class _RecolectoresState extends State<Recolectores> {
                                   IconButton(
                                     icon: Icon(Icons.delete),
                                     onPressed: () {
-                                      _borrarLitros(nombre, i);
+                                      _borrarLitros(cedula, i);
                                     },
                                   ),
                                 ],
@@ -195,11 +231,22 @@ class _RecolectoresState extends State<Recolectores> {
                               context: context,
                               builder: (context) {
                                 final _editNombreController = TextEditingController(text: nombre);
+                                final _editCedulaController = TextEditingController(text: cedula);
                                 return AlertDialog(
-                                  title: Text('Editar Nombre del Productor'),
-                                  content: TextField(
-                                    controller: _editNombreController,
-                                    decoration: InputDecoration(labelText: 'Nombre del Productor'),
+                                  title: Text('Editar Productor'),
+                                  content: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      TextField(
+                                        controller: _editNombreController,
+                                        decoration: InputDecoration(labelText: 'Nombre del Productor'),
+                                      ),
+                                      TextField(
+                                        controller: _editCedulaController,
+                                        decoration: InputDecoration(labelText: 'Cédula del Productor'),
+                                        keyboardType: TextInputType.number,
+                                      ),
+                                    ],
                                   ),
                                   actions: [
                                     TextButton(
@@ -211,7 +258,8 @@ class _RecolectoresState extends State<Recolectores> {
                                     TextButton(
                                       onPressed: () {
                                         final nuevoNombre = _editNombreController.text;
-                                        _actualizarProductor(nombre, nuevoNombre);
+                                        final nuevoCedula = _editCedulaController.text;
+                                        _actualizarProductor(cedula, nuevoNombre, nuevoCedula);
                                         Navigator.of(context).pop();
                                       },
                                       child: Text('Actualizar'),
@@ -225,7 +273,7 @@ class _RecolectoresState extends State<Recolectores> {
                         IconButton(
                           icon: Icon(Icons.delete),
                           onPressed: () {
-                            _borrarProductor(nombre);
+                            _borrarProductor(cedula);
                           },
                         ),
                         IconButton(
@@ -250,7 +298,7 @@ class _RecolectoresState extends State<Recolectores> {
                                     ),
                                     TextButton(
                                       onPressed: () {
-                                        _registrarLitros(nombre);
+                                        _registrarLitros(cedula);
                                         Navigator.of(context).pop();
                                       },
                                       child: Text('Registrar'),

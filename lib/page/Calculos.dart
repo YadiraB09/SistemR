@@ -9,39 +9,50 @@ class Calculos extends StatefulWidget {
 
 class _CalculosState extends State<Calculos> {
   final TextEditingController _nombreController = TextEditingController();
+  final TextEditingController _cedulaController = TextEditingController();
   final TextEditingController _precioController = TextEditingController();
   double _totalLitros = 0.0;
   double _totalPagar = 0.0;
 
   void _calcularEstadisticas() {
     final nombre = _nombreController.text;
+    final cedula = _cedulaController.text;
     final precio = double.tryParse(_precioController.text) ?? 0.0;
 
-    // Simular datos de litros recolectados
-    final Map<String, List<double>> litrosDiarios = {
-      'Productor1': [10.0, 15.0, 20.0],
-      'Productor2': [12.0, 18.0, 25.0],
-      'Productor3': [8.0, 13.0, 22.0],
+    // Simular datos de litros recolectados con nombre y cédula
+    final Map<String, Map<String, List<double>>> litrosDiarios = {
+      'Productor1': {
+        '1111111111': [10.0, 15.0, 20.0],
+      },
+      'Productor2': {
+        '2222222222': [12.0, 18.0, 25.0],
+      },
+      'Productor3': {
+        '3333333333': [8.0, 13.0, 22.0],
+      },
     };
 
-    if (litrosDiarios.containsKey(nombre)) {
-      _totalLitros = litrosDiarios[nombre]!.fold(0.0, (prev, element) => prev + element);
-      _totalPagar = _totalLitros * precio;
+    bool productorEncontrado = false;
 
-      setState(() {});
-    } else {
-      // Reset values if producer not found
+    litrosDiarios.forEach((prodNombre, data) {
+      if (prodNombre == nombre || data.containsKey(cedula)) {
+        _totalLitros = data.values.fold(0.0, (prev, element) => prev + element.fold(0.0, (subPrev, subElement) => subPrev + subElement));
+        _totalPagar = _totalLitros * precio;
+        productorEncontrado = true;
+      }
+    });
+
+    if (!productorEncontrado) {
       _totalLitros = 0.0;
       _totalPagar = 0.0;
-
-      setState(() {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Productor no encontrado.'),
-          ),
-        );
-      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Productor no encontrado.'),
+        ),
+      );
     }
+
+    setState(() {});
   }
 
   @override
@@ -60,6 +71,14 @@ class _CalculosState extends State<Calculos> {
               decoration: InputDecoration(
                 labelText: 'Nombre del Productor',
               ),
+            ),
+            SizedBox(height: 20),
+            TextField(
+              controller: _cedulaController,
+              decoration: InputDecoration(
+                labelText: 'Cédula del Productor',
+              ),
+              keyboardType: TextInputType.number,
             ),
             SizedBox(height: 20),
             TextField(

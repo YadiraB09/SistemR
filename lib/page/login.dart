@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class Login extends StatefulWidget {
   const Login({Key? key}) : super(key: key);
@@ -8,19 +9,47 @@ class Login extends StatefulWidget {
 }
 
 class _LoginState extends State<Login> {
-  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _cedulaController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  final SupabaseClient supabase = Supabase.instance.client;
 
-  void _login() {
-    // Aquí puedes implementar la lógica de autenticación
-    String email = _emailController.text;
+  String _selectedRole = 'Recolector';
+
+  void _login() async {
+    String cedula = _cedulaController.text;
     String password = _passwordController.text;
 
-    // Por ejemplo, podrías verificar las credenciales en una base de datos o servicio de autenticación
-    // Y luego redirigir al usuario a la pantalla principal si las credenciales son correctas
+    final response = await supabase
+        .from('usuarios')
+        .select()
+        .eq('Cedula', cedula)
+        .eq('password', password)
+        .execute();
 
-    // Aquí redirigimos al usuario a la página principal
-    // Navigator.pushReplacementNamed(context, '/home');
+    if (response.error != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error al conectar a Supabase: ${response.error!.message}')),
+      );
+      return;
+    }
+
+    final data = response.data;
+    if (data.isNotEmpty) {
+      final userRole = data[0]['rol'];
+      if (userRole == 'Productor') {
+        Navigator.pushReplacementNamed(context, '/productores');
+      } else if (userRole == 'Recolector') {
+        Navigator.pushReplacementNamed(context, '/recolectores');
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Rol no reconocido')),
+        );
+      }
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Cédula o contraseña incorrecta')),
+      );
+    }
   }
 
   @override
@@ -34,19 +63,35 @@ class _LoginState extends State<Login> {
           children: [
             const Text("This is a login Page"),
             TextField(
-              controller: _emailController,
+              controller: _cedulaController,
               decoration: const InputDecoration(
-                labelText: 'Email',
+                labelText: 'Cédula',
               ),
-              keyboardType: TextInputType.emailAddress,
+              keyboardType: TextInputType.number,
             ),
             const SizedBox(height: 20),
             TextField(
               controller: _passwordController,
               decoration: const InputDecoration(
-                labelText: 'Password',
+                labelText: 'Contraseña',
               ),
               obscureText: true,
+            ),
+            const SizedBox(height: 20),
+            DropdownButton<String>(
+              value: _selectedRole,
+              items: <String>['Recolector', 'Productor']
+                  .map((String value) {
+                return DropdownMenuItem<String>(
+                  value: value,
+                  child: Text(value),
+                );
+              }).toList(),
+              onChanged: (String? newValue) {
+                setState(() {
+                  _selectedRole = newValue!;
+                });
+              },
             ),
             const SizedBox(height: 20),
             ElevatedButton(
