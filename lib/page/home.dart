@@ -1,4 +1,3 @@
-//*import 'package:app_solucion_parcial_news/routes/app_routes.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:myapp/routes/app_routes.dart';
@@ -19,26 +18,56 @@ class Home extends StatelessWidget {
                   context.push(AppRoutes.login);
                 },
                 child: const Text("login")),
-            TextButton(
-                onPressed: () {
-                  context.push(AppRoutes.estadisticas);
-                },
-                child: const Text("Estadistica ")),
-            TextButton(
-                onPressed: () {
-                  context.push(AppRoutes.productores);
-                },
-                child: const Text("Productores")),
-            TextButton(
-                onPressed: () {
-                  context.push(AppRoutes.recolectores);
-                },
-                child: const Text("Recolectores")),
-                 TextButton(
-                onPressed: () {
-                  context.push(AppRoutes.calculos);
-                },
-                child: const Text("Calculos")),
+            Container(
+              padding: const EdgeInsets.all(16.0),
+              decoration: BoxDecoration(
+                color: Colors.black,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Column(
+                children: [
+                  TextButton(
+                    onPressed: () {
+                      context.push(AppRoutes.estadisticas);
+                    },
+                    child: const Text(
+                      "Estadistica",
+                      style: TextStyle(fontSize: 20, color: Colors.white),
+                    ),
+                  ),
+                  SizedBox(height: 10),
+                  TextButton(
+                    onPressed: () {
+                      context.push(AppRoutes.productores);
+                    },
+                    child: const Text(
+                      "Productores",
+                      style: TextStyle(fontSize: 20, color: Colors.white),
+                    ),
+                  ),
+                  SizedBox(height: 10),
+                  TextButton(
+                    onPressed: () {
+                      context.push(AppRoutes.recolectores);
+                    },
+                    child: const Text(
+                      "Recolectores",
+                      style: TextStyle(fontSize: 20, color: Colors.white),
+                    ),
+                  ),
+                  SizedBox(height: 10),
+                  TextButton(
+                    onPressed: () {
+                      context.push(AppRoutes.calculos);
+                    },
+                    child: const Text(
+                      "Calculos",
+                      style: TextStyle(fontSize: 20, color: Colors.white),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ],
         ),
       ),

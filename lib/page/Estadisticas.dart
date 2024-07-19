@@ -1,61 +1,76 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class Estadisticas extends StatefulWidget {
-  const Estadisticas({super.key});
+  const Estadisticas({Key? key}) : super(key: key);
 
   @override
   _EstadisticasState createState() => _EstadisticasState();
 }
 
 class _EstadisticasState extends State<Estadisticas> {
-  final TextEditingController _precioController = TextEditingController();
   DateTime? _startDate;
   DateTime? _endDate;
-  double _totalLitros = 0.0;
-  double _totalPagar = 0.0;
+  List<Map<String, dynamic>> _reportData = [];
 
-  // Simular datos de litros recolectados
-  final Map<DateTime, double> litrosComprados = {
-    DateTime.utc(2024, 6, 1): 10.0,
-    DateTime.utc(2024, 6, 2): 15.0,
-    DateTime.utc(2024, 6, 15): 20.0,
-    DateTime.utc(2024, 7, 1): 12.0,
-    DateTime.utc(2024, 7, 5): 18.0,
-    DateTime.utc(2024, 7, 15): 25.0,
-    DateTime.utc(2024, 8, 1): 8.0,
-    DateTime.utc(2024, 8, 10): 13.0,
-    DateTime.utc(2024, 8, 20): 22.0,
-  };
-
-  void _calcularEstadisticas() {
-    final precio = double.tryParse(_precioController.text) ?? 0.0;
-
+  void _fetchReportData() async {
     if (_startDate != null && _endDate != null) {
-      _totalLitros = 0.0;
-      _totalPagar = 0.0;
+      final response = await Supabase.instance.client
+          .from('Costos')
+          .select('productor_id, litros_totales, costo_total, precio, fecha')
+          .gte('fecha', _startDate)
+          .lte('fecha', _endDate)
+          .execute();
 
-      litrosComprados.forEach((fecha, litros) {
-        if (fecha.isAfter(_startDate!.subtract(const Duration(days: 1))) &&
-            fecha.isBefore(_endDate!.add(const Duration(days: 1)))) {
-          _totalLitros += litros;
+      if (response.error == null) {
+        final data = response.data as List<dynamic>;
+
+        // Obtener los IDs de los productores
+        List<int> productorIds =
+            data.map((item) => item['productor_id'] as int).toList();
+
+        // Consultar los nombres de los productores
+        final productoresResponse = await Supabase.instance.client
+            .from('Productores')
+            .select('id, nombre, cedula')
+            .in_('id', productorIds)
+            .execute();
+
+        if (productoresResponse.error == null) {
+          final productoresData = productoresResponse.data as List<dynamic>;
+          final productoresMap = Map.fromIterable(
+            productoresData,
+            key: (item) => item['id'],
+            value: (item) =>
+                {'nombre': item['nombre'], 'cedula': item['cedula']},
+          );
+
+          // Combinar datos
+          for (var item in data) {
+            final productorInfo = productoresMap[item['productor_id']];
+            if (productorInfo != null) {
+              _reportData.add({
+                'nombre': productorInfo['nombre'],
+                'cedula': productorInfo['cedula'],
+                'litros_totales': item['litros_totales'],
+                'costo_total': item['costo_total'],
+                'precio': item['precio'],
+                'fecha': item['fecha'],
+              });
+            }
+          }
+        } else {
+          _showErrorSnackBar(
+              'Error al obtener los productores: ${productoresResponse.error!.message}');
         }
-      });
 
-      _totalPagar = _totalLitros * precio;
-
-      setState(() {});
+        setState(() {});
+      } else {
+        _showErrorSnackBar(
+            'Error al obtener los costos: ${response.error!.message}');
+      }
     } else {
-      // Reset values if dates not selected
-      _totalLitros = 0.0;
-      _totalPagar = 0.0;
-
-      setState(() {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Fechas no seleccionadas.'),
-          ),
-        );
-      });
+      _showErrorSnackBar('Fechas no seleccionadas.');
     }
   }
 
@@ -74,39 +89,69 @@ class _EstadisticasState extends State<Estadisticas> {
     }
   }
 
+  void _showErrorSnackBar(String message) {
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Estadisticas")),
+      appBar: AppBar(
+        title: Text(
+          "Estadísticas",
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        centerTitle: true,
+      ),
       body: Center(
         child: Padding(
           padding: const EdgeInsets.all(16.0),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Text("This is a login Page"),
-              TextField(
-                controller: _precioController,
-                decoration: const InputDecoration(
-                  labelText: 'Precio por Litro',
-                ),
-                keyboardType: TextInputType.number,
-              ),
-              const SizedBox(height: 20),
               ElevatedButton(
                 onPressed: () => _selectDateRange(context),
-                child: const Text('Seleccionar Rango de Fechas'),
+                child: const Text('Seleccionar Rango de Fechas',
+                    style: TextStyle(color: Colors.white)),
+                style: ButtonStyle(
+                  backgroundColor:
+                      MaterialStateProperty.all<Color>(Colors.black),
+                ),
               ),
               if (_startDate != null && _endDate != null)
-                Text('Rango Seleccionado: ${_startDate!.toLocal()} - ${_endDate!.toLocal()}'),
+                Text(
+                    'Rango Seleccionado: ${_startDate!.toLocal()} - ${_endDate!.toLocal()}'),
               const SizedBox(height: 20),
               ElevatedButton(
-                onPressed: _calcularEstadisticas,
-                child: const Text('Calcular'),
+                onPressed: _fetchReportData,
+                child: const Text('Generar Reporte',
+                    style: TextStyle(color: Colors.white)),
+                style: ButtonStyle(
+                  backgroundColor:
+                      MaterialStateProperty.all<Color>(Colors.black),
+                ),
               ),
               const SizedBox(height: 20),
-              Text('Total de Litros: $_totalLitros'),
-              Text('Total a Pagar: $_totalPagar'),
+              Expanded(
+                child: ListView.builder(
+                  itemCount: _reportData.length,
+                  itemBuilder: (context, index) {
+                    final item = _reportData[index];
+                    return ListTile(
+                      title: Text(
+                          'Nombre: ${item['nombre']}, Cédula: ${item['cedula']}'),
+                      subtitle:
+                          Text('Litros Totales: ${item['litros_totales']}, '
+                              'Costo Total: ${item['costo_total']}, '
+                              'Precio por Litro: ${item['precio']}, '
+                              'Fecha: ${item['fecha']}'),
+                    );
+                  },
+                ),
+              ),
             ],
           ),
         ),

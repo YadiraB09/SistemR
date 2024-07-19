@@ -1,45 +1,70 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:myapp/routes/app_routes.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-class Login extends StatefulWidget {
-  const Login({Key? key}) : super(key: key);
+class LoginPage extends StatefulWidget {
+  const LoginPage({Key? key}) : super(key: key);
 
   @override
-  _LoginState createState() => _LoginState();
+  LoginPageState createState() => LoginPageState();
 }
 
-class _LoginState extends State<Login> {
+class LoginPageState extends State<LoginPage> {
   final TextEditingController _cedulaController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final SupabaseClient supabase = Supabase.instance.client;
-
-  String _selectedRole = 'Recolector';
 
   void _login() async {
     String cedula = _cedulaController.text;
     String password = _passwordController.text;
 
+    if (cedula.isEmpty || password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Cédula y contraseña son requeridas')),
+      );
+      return;
+    }
+
     final response = await supabase
-        .from('usuarios')
+        .from('Users')
         .select()
         .eq('Cedula', cedula)
-        .eq('password', password)
+        .eq('Password', password)
+        .single()
         .execute();
 
     if (response.error != null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error al conectar a Supabase: ${response.error!.message}')),
+        SnackBar(
+          content: Text('Error al conectar a Supabase: ${response.error!.message}'),
+        ),
       );
       return;
     }
 
     final data = response.data;
-    if (data.isNotEmpty) {
-      final userRole = data[0]['rol'];
-      if (userRole == 'Productor') {
-        Navigator.pushReplacementNamed(context, '/productores');
-      } else if (userRole == 'Recolector') {
-        Navigator.pushReplacementNamed(context, '/recolectores');
+
+    if (data != null) {
+      final userRole = data['rol'];
+      if (userRole == 'Recolectores') {
+        context.pushReplacement(AppRoutes.recolectores);
+      } else if (userRole == 'Productores') {
+        // Autenticamos al usuario en Supabase
+        final authResponse = await supabase.auth.signIn(
+          email: cedula, // O el email correspondiente si tienes uno
+          password: password,
+        );
+
+        if (authResponse.error != null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error al autenticar: ${authResponse.error!.message}'),
+            ),
+          );
+        } else {
+          context.pushReplacement(AppRoutes.productores);
+        }
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Rol no reconocido')),
@@ -55,50 +80,61 @@ class _LoginState extends State<Login> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Login")),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Text("This is a login Page"),
-            TextField(
-              controller: _cedulaController,
-              decoration: const InputDecoration(
-                labelText: 'Cédula',
+      appBar: AppBar(
+        title: const Text(
+          'ACOPIO ROSITA',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 30,
+          ),
+        ),
+        centerTitle: true,
+      ),
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Image.network(
+                'https://www.vsun.es/pics/2024/01/18/dibujos-de-vaca-para-colorear-5.jpg',
+                height: 150,
               ),
-              keyboardType: TextInputType.number,
-            ),
-            const SizedBox(height: 20),
-            TextField(
-              controller: _passwordController,
-              decoration: const InputDecoration(
-                labelText: 'Contraseña',
+              const SizedBox(height: 20),
+              TextField(
+                controller: _cedulaController,
+                decoration: const InputDecoration(
+                  labelText: 'Cédula',
+                ),
+                keyboardType: TextInputType.number,
               ),
-              obscureText: true,
-            ),
-            const SizedBox(height: 20),
-            DropdownButton<String>(
-              value: _selectedRole,
-              items: <String>['Recolector', 'Productor']
-                  .map((String value) {
-                return DropdownMenuItem<String>(
-                  value: value,
-                  child: Text(value),
-                );
-              }).toList(),
-              onChanged: (String? newValue) {
-                setState(() {
-                  _selectedRole = newValue!;
-                });
-              },
-            ),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: _login,
-              child: const Text('Login'),
-            ),
-          ],
+              const SizedBox(height: 20),
+              TextField(
+                controller: _passwordController,
+                decoration: const InputDecoration(
+                  labelText: 'Contraseña',
+                ),
+                obscureText: true,
+              ),
+              const SizedBox(height: 20),
+              ElevatedButton(
+                style: ButtonStyle(
+                  backgroundColor: MaterialStateProperty.all<Color>(Colors.black),
+                  foregroundColor: MaterialStateProperty.all<Color>(Colors.white),
+                  padding: MaterialStateProperty.all<EdgeInsetsGeometry>(
+                    EdgeInsets.symmetric(vertical: 16, horizontal: 32),
+                  ),
+                  shape: MaterialStateProperty.all<OutlinedBorder>(
+                    RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+                onPressed: _login,
+                child: const Text('Login'),
+              ),
+            ],
+          ),
         ),
       ),
     );

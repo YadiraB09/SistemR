@@ -1,146 +1,138 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class Productores extends StatefulWidget {
-  const Productores({super.key});
+  const Productores({Key? key}) : super(key: key);
 
   @override
   _ProductoresState createState() => _ProductoresState();
 }
 
 class _ProductoresState extends State<Productores> {
-  final TextEditingController _nombreController = TextEditingController();
-  final TextEditingController _cedulaController = TextEditingController();
-  final TextEditingController _precioController = TextEditingController();
-  final TextEditingController _searchController = TextEditingController();
-
-  List<Map<String, dynamic>> _productores = [];
-  Map<String, List<double>> _litrosDiarios = {};
-  List<Map<String, dynamic>> _productoresFiltrados = [];
+  List<Map<String, dynamic>> _notificaciones = [];
+  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _productoresFiltrados = _productores;
+    _fetchNotificaciones();
+    _subscribeToRealtime();
   }
 
-  void _registrarProductor() {
-    final nombre = _nombreController.text;
-    final cedula = _cedulaController.text;
-
+  Future<void> _fetchNotificaciones() async {
     setState(() {
-      _productores.add({'nombre': nombre, 'cedula': cedula});
-      _litrosDiarios[cedula] = [for (var i = 0; i < 15; i++) (i + 1) * 2.0]; // Datos simulados
-      _productoresFiltrados = _productores;
+      _isLoading = true;
     });
 
-    _nombreController.clear();
-    _cedulaController.clear();
-  }
+    final user = Supabase.instance.client.auth.currentUser;
+    print('Current user: ${user?.id}');  // Debug: Verifica el usuario actual
 
-  void _enviarNotificaciones() {
-    final precioPorLitro = double.tryParse(_precioController.text) ?? 0.0;
+    if (user != null) {
+      try {
+        final response = await Supabase.instance.client
+            .from('Notificaciones')
+            .select()
+            .eq('user_id', user.id)
+            .execute();
 
-    for (var productor in _productoresFiltrados) {
-      final nombre = productor['nombre'];
-      final cedula = productor['cedula'];
-      final litros = _litrosDiarios[cedula]!;
-      final totalLitros = litros.fold(0.0, (prev, element) => prev + element); // Inicializar como double
-      final totalPagar = totalLitros * precioPorLitro;
+        print('Response status: ${response.status}');  // Debug: Verifica el estado de la respuesta
+        print('Response data: ${response.data}');      // Debug: Verifica los datos de la respuesta
+        print('Response error: ${response.error}');    // Debug: Verifica si hay errores en la respuesta
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Notificación para $nombre:\nLitros recolectados: $totalLitros\nTotal a pagar: \$${totalPagar.toStringAsFixed(2)}',
-          ),
-        ),
-      );
+        if (response.error == null) {
+          final data = response.data as List<dynamic>;
+          setState(() {
+            _notificaciones = data.map((item) => item as Map<String, dynamic>).toList();
+            _isLoading = false;
+          });
+          if (data.isEmpty) {
+            print('No se encontraron notificaciones para el usuario con ID: ${user.id}');
+          } else {
+            print('Notificaciones obtenidas: ${data.length}');
+          }
+        } else {
+          _showErrorSnackBar('Error al obtener notificaciones: ${response.error!.message}');
+          setState(() {
+            _isLoading = false;
+          });
+          print('Error al obtener notificaciones: ${response.error!.message}');
+        }
+      } catch (e) {
+        _showErrorSnackBar('Error desconocido: $e');
+        setState(() {
+          _isLoading = false;
+        });
+        print('Error desconocido: $e');
+      }
+    } else {
+      _showErrorSnackBar('No se encontró usuario autenticado.');
+      setState(() {
+        _isLoading = false;
+      });
+      print('No se encontró usuario autenticado.');
     }
   }
 
-  void _searchProductor() {
-    final query = _searchController.text.toLowerCase();
-    setState(() {
-      _productoresFiltrados = _productores.where((productor) {
-        final nombre = productor['nombre'].toLowerCase();
-        final cedula = productor['cedula'];
-        return nombre.contains(query) || cedula.contains(query);
-      }).toList();
-    });
+  void _subscribeToRealtime() {
+    final user = Supabase.instance.client.auth.currentUser;
+    print('Subscribing to realtime updates for user: ${user?.id}');  // Debug: Verifica el usuario antes de suscribirse
+
+    if (user != null) {
+      final subscription = Supabase.instance.client
+          .from('Notificaciones:user_id=eq.${user.id}')
+          .on(SupabaseEventTypes.insert, (payload) {
+        final newRecord = payload.newRecord;
+        print('Realtime payload: $payload');  // Debug: Verifica el payload en tiempo real
+
+        if (newRecord != null) {
+          setState(() {
+            _notificaciones.add(newRecord as Map<String, dynamic>);
+          });
+          print('Nueva notificación en tiempo real: $newRecord');
+        } else {
+          print('Nuevo registro en tiempo real es nulo.');
+        }
+      }).subscribe();
+
+      Supabase.instance.client.getSubscriptions().add(subscription);
+    }
+  }
+
+  void _showErrorSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
+  }
+
+  Future<void> _handleRefresh() async {
+    await _fetchNotificaciones();
   }
 
   @override
   Widget build(BuildContext context) {
+    print('_isLoading: $_isLoading');
+    print('_notificaciones: _notificaciones');
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text("PRODUCTORES"),
+        title: const Text('Notificaciones'),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                labelText: 'Buscar Productor por Nombre o Cédula',
-                suffixIcon: IconButton(
-                  icon: Icon(Icons.search),
-                  onPressed: _searchProductor,
-                ),
-              ),
-            ),
-            SizedBox(height: 20),
-            TextField(
-              controller: _nombreController,
-              decoration: InputDecoration(
-                labelText: 'Nombre del Productor',
-              ),
-            ),
-            SizedBox(height: 20),
-            TextField(
-              controller: _cedulaController,
-              decoration: InputDecoration(
-                labelText: 'Cédula del Productor',
-              ),
-              keyboardType: TextInputType.number,
-            ),
-            SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: _registrarProductor,
-              child: Text('Registrar Productor'),
-            ),
-            SizedBox(height: 20),
-            TextField(
-              controller: _precioController,
-              decoration: InputDecoration(
-                labelText: 'Precio por Litro',
-              ),
-              keyboardType: TextInputType.number,
-            ),
-            SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: _enviarNotificaciones,
-              child: Text('Enviar Notificaciones'),
-            ),
-            SizedBox(height: 20),
-            Expanded(
+      body: _isLoading
+          ? Center(child: CircularProgressIndicator())
+          : RefreshIndicator(
+              onRefresh: _handleRefresh,
               child: ListView.builder(
-                itemCount: _productoresFiltrados.length,
+                itemCount: _notificaciones.length,
                 itemBuilder: (context, index) {
-                  final productor = _productoresFiltrados[index];
-                  final nombre = productor['nombre'];
-                  final cedula = productor['cedula'];
-
+                  final notificacion = _notificaciones[index];
                   return ListTile(
-                    title: Text('$nombre (Cédula: $cedula)'),
-                    subtitle: Text('Productor registrado'),
+                    title: Text(notificacion['message']),
+                    subtitle: Text(notificacion['created_at']),
+                    trailing: notificacion['is_read'] ? null : Icon(Icons.circle, color: Colors.red),
                   );
                 },
               ),
             ),
-          ],
-        ),
-      ),
     );
   }
 }
