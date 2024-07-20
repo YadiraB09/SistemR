@@ -2,61 +2,65 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class Productores extends StatefulWidget {
-  const Productores({Key? key}) : super(key: key);
+
+  final int? userId;
+  const Productores({super.key, this.userId});
 
   @override
-  _ProductoresState createState() => _ProductoresState();
+  ProductoresState createState() => ProductoresState();
 }
 
-class _ProductoresState extends State<Productores> {
-  List<Map<String, dynamic>> _notificaciones = [];
+class ProductoresState extends State<Productores> {
+  final SupabaseClient supabase = Supabase.instance.client;
+  List<dynamic> _notificaciones = [];
   bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _fetchNotificaciones();
+    _fetchNotificaciones(widget.userId);
     _subscribeToRealtime();
   }
 
-  Future<void> _fetchNotificaciones() async {
+  Future<void> _fetchNotificaciones(int? id) async {
     setState(() {
       _isLoading = true;
     });
+    print("Id in fetchNoticiaciones: $id");
+    final notificationsByUser = await supabase
+        .from('Notificaciones')
+        .select()
+        .eq('user_id', id)
+        // .single()
+        .execute();
 
-    final user = Supabase.instance.client.auth.currentUser;
-    print('Current user: ${user?.id}');  // Debug: Verifica el usuario actual
+    print('Current user: ${notificationsByUser.data}');  // Debug: Verifica el usuario actual
 
-    if (user != null) {
+    if (notificationsByUser.data != null) {
       try {
-        final response = await Supabase.instance.client
-            .from('Notificaciones')
-            .select()
-            .eq('user_id', user.id)
-            .execute();
 
-        print('Response status: ${response.status}');  // Debug: Verifica el estado de la respuesta
-        print('Response data: ${response.data}');      // Debug: Verifica los datos de la respuesta
-        print('Response error: ${response.error}');    // Debug: Verifica si hay errores en la respuesta
+        // print('Response status: ${response.status}');  // Debug: Verifica el estado de la respuesta
+        // print('Response data: ${response.data}');      // Debug: Verifica los datos de la respuesta
+        // print('Response error: ${response.error}');    // Debug: Verifica si hay errores en la respuesta
 
-        if (response.error == null) {
-          final data = response.data as List<dynamic>;
+        // if (response.error == null) {
+        //   final data = response.data as List<dynamic>;
           setState(() {
-            _notificaciones = data.map((item) => item as Map<String, dynamic>).toList();
+            _notificaciones = notificationsByUser.data;
             _isLoading = false;
           });
-          if (data.isEmpty) {
-            print('No se encontraron notificaciones para el usuario con ID: ${user.id}');
-          } else {
-            print('Notificaciones obtenidas: ${data.length}');
-          }
-        } else {
-          _showErrorSnackBar('Error al obtener notificaciones: ${response.error!.message}');
-          setState(() {
-            _isLoading = false;
-          });
-          print('Error al obtener notificaciones: ${response.error!.message}');
-        }
+        //   if (data.isEmpty) {
+        //     print('No se encontraron notificaciones para el usuario con ID: ${user.id}');
+        //   } else {
+        //     print('Notificaciones obtenidas: ${data.length}');
+        //   }
+        // } else {
+        //   _showErrorSnackBar('Error al obtener notificaciones: ${response.error!.message}');
+        //   setState(() {
+        //     _isLoading = false;
+        //   });
+        //   print('Error al obtener notificaciones: ${response.error!.message}');
+        // }
       } catch (e) {
         _showErrorSnackBar('Error desconocido: $e');
         setState(() {
@@ -99,13 +103,14 @@ class _ProductoresState extends State<Productores> {
   }
 
   void _showErrorSnackBar(String message) {
+    print("Error prod page: $message");
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(message)),
     );
   }
 
   Future<void> _handleRefresh() async {
-    await _fetchNotificaciones();
+    await _fetchNotificaciones(widget.userId);
   }
 
   @override
