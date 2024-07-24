@@ -1,62 +1,49 @@
+// ignore: file_names
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:go_router/go_router.dart';
+import 'package:myapp/routes/app_routes.dart'; // Asegúrate de importar las rutas
 
 class Productores extends StatefulWidget {
-  const Productores({Key? key}) : super(key: key);
+  final int? userId;
+  const Productores({super.key, this.userId});
 
   @override
-  _ProductoresState createState() => _ProductoresState();
+  ProductoresState createState() => ProductoresState();
 }
 
-class _ProductoresState extends State<Productores> {
-  List<Map<String, dynamic>> _notificaciones = [];
+class ProductoresState extends State<Productores> {
+  final SupabaseClient supabase = Supabase.instance.client;
+  List<dynamic> _notificaciones = [];
   bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _fetchNotificaciones();
+    _fetchNotificaciones(widget.userId);
     _subscribeToRealtime();
   }
 
-  Future<void> _fetchNotificaciones() async {
+  Future<void> _fetchNotificaciones(int? id) async {
     setState(() {
       _isLoading = true;
     });
+    print("Id in fetchNotificaciones: $id");
+    final notificationsByUser = await supabase
+        .from('Notificaciones')
+        .select()
+        .eq('user_id', id)
+        .execute();
 
-    final user = Supabase.instance.client.auth.currentUser;
-    print('Current user: ${user?.id}');  // Debug: Verifica el usuario actual
+    print(
+        'Current user: ${notificationsByUser.data}'); // Debug: Verifica el usuario actual
 
-    if (user != null) {
+    if (notificationsByUser.data != null) {
       try {
-        final response = await Supabase.instance.client
-            .from('Notificaciones')
-            .select()
-            .eq('user_id', user.id)
-            .execute();
-
-        print('Response status: ${response.status}');  // Debug: Verifica el estado de la respuesta
-        print('Response data: ${response.data}');      // Debug: Verifica los datos de la respuesta
-        print('Response error: ${response.error}');    // Debug: Verifica si hay errores en la respuesta
-
-        if (response.error == null) {
-          final data = response.data as List<dynamic>;
-          setState(() {
-            _notificaciones = data.map((item) => item as Map<String, dynamic>).toList();
-            _isLoading = false;
-          });
-          if (data.isEmpty) {
-            print('No se encontraron notificaciones para el usuario con ID: ${user.id}');
-          } else {
-            print('Notificaciones obtenidas: ${data.length}');
-          }
-        } else {
-          _showErrorSnackBar('Error al obtener notificaciones: ${response.error!.message}');
-          setState(() {
-            _isLoading = false;
-          });
-          print('Error al obtener notificaciones: ${response.error!.message}');
-        }
+        setState(() {
+          _notificaciones = notificationsByUser.data;
+          _isLoading = false;
+        });
       } catch (e) {
         _showErrorSnackBar('Error desconocido: $e');
         setState(() {
@@ -75,14 +62,16 @@ class _ProductoresState extends State<Productores> {
 
   void _subscribeToRealtime() {
     final user = Supabase.instance.client.auth.currentUser;
-    print('Subscribing to realtime updates for user: ${user?.id}');  // Debug: Verifica el usuario antes de suscribirse
+    print(
+        'Subscribing to realtime updates for user: ${user?.id}'); // Debug: Verifica el usuario antes de suscribirse
 
     if (user != null) {
       final subscription = Supabase.instance.client
           .from('Notificaciones:user_id=eq.${user.id}')
           .on(SupabaseEventTypes.insert, (payload) {
         final newRecord = payload.newRecord;
-        print('Realtime payload: $payload');  // Debug: Verifica el payload en tiempo real
+        print(
+            'Realtime payload: $payload'); // Debug: Verifica el payload en tiempo real
 
         if (newRecord != null) {
           setState(() {
@@ -99,26 +88,37 @@ class _ProductoresState extends State<Productores> {
   }
 
   void _showErrorSnackBar(String message) {
+    print("Error prod page: $message");
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(message)),
     );
   }
 
   Future<void> _handleRefresh() async {
-    await _fetchNotificaciones();
+    await _fetchNotificaciones(widget.userId);
   }
 
   @override
   Widget build(BuildContext context) {
     print('_isLoading: $_isLoading');
-    print('_notificaciones: _notificaciones');
+    print('_notificaciones: $_notificaciones');
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Notificaciones'),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.logout),
+            onPressed: () {
+              // Navegar a la página de login
+              context.go(AppRoutes
+                  .login); // Asegúrate de que AppRoutes.login esté configurada correctamente
+            },
+          ),
+        ],
       ),
       body: _isLoading
-          ? Center(child: CircularProgressIndicator())
+          ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
               onRefresh: _handleRefresh,
               child: ListView.builder(
@@ -128,7 +128,10 @@ class _ProductoresState extends State<Productores> {
                   return ListTile(
                     title: Text(notificacion['message']),
                     subtitle: Text(notificacion['created_at']),
-                    trailing: notificacion['is_read'] ? null : Icon(Icons.circle, color: Colors.red),
+                    trailing: notificacion['is_read']
+                        ? null
+                        : const Icon(Icons.circle,
+                            color: Color.fromARGB(255, 22, 124, 47)),
                   );
                 },
               ),

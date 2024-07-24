@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class Calculos extends StatefulWidget {
-  const Calculos({Key? key}) : super(key: key);
+  const Calculos({super.key});
 
   @override
   _CalculosState createState() => _CalculosState();
@@ -218,18 +218,20 @@ class _CalculosState extends State<Calculos> {
             onPressed: () {
               Navigator.pushNamed(context, '/registrar');
             },
-            child: Text('Registrar', style: TextStyle(color: Colors.white)),
+            child:
+                const Text('Registrar', style: TextStyle(color: Colors.white)),
           ),
           TextButton(
             onPressed: () {
               Navigator.pushNamed(context, '/estadisticas');
             },
-            child: Text('Estadísticas', style: TextStyle(color: Colors.white)),
+            child: const Text('Estadísticas',
+                style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
       body: _isLoading
-          ? Center(child: CircularProgressIndicator())
+          ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
@@ -241,19 +243,19 @@ class _CalculosState extends State<Calculos> {
                       decoration: InputDecoration(
                         labelText: 'Buscar Productor por Nombre o Cédula',
                         suffixIcon: IconButton(
-                          icon: Icon(Icons.search),
+                          icon: const Icon(Icons.search),
                           onPressed: _searchProductor,
                         ),
                       ),
                     ),
-                    SizedBox(height: 20),
+                    const SizedBox(height: 20),
                     if (_selectedProductor != null) ...[
                       Text(
                           'Nombre del Productor: ${_selectedProductor!['nombre']}'),
                       Text('Cédula: ${_selectedProductor!['cedula']}'),
                       Text('Litros Registrados: $_totalLitros'),
-                      SizedBox(height: 10),
-                      Text('Detalles de Producciones:'),
+                      const SizedBox(height: 10),
+                      const Text('Detalles de Producciones:'),
                       ListView.builder(
                         shrinkWrap: true,
                         itemCount: _produccionesDelProductor.length,
@@ -265,16 +267,16 @@ class _CalculosState extends State<Calculos> {
                           );
                         },
                       ),
-                      SizedBox(height: 10),
+                      const SizedBox(height: 10),
                       ElevatedButton(
                         onPressed: () {
                           showDialog(
                             context: context,
                             builder: (BuildContext context) => AlertDialog(
-                              title: Text('Calcular Costo Total'),
+                              title: const Text('Calcular Costo Total'),
                               content: TextField(
                                 controller: _precioController,
-                                decoration: InputDecoration(
+                                decoration: const InputDecoration(
                                   labelText: 'Precio por Litro',
                                 ),
                                 keyboardType: TextInputType.number,
@@ -284,36 +286,36 @@ class _CalculosState extends State<Calculos> {
                                   onPressed: () {
                                     Navigator.pop(context);
                                   },
-                                  child: Text('Cancelar'),
+                                  child: const Text('Cancelar'),
                                 ),
                                 ElevatedButton(
                                   onPressed: _onCalcularButtonPressed,
-                                  child: Text('Calcular'),
+                                  child: const Text('Calcular'),
                                 ),
                               ],
                             ),
                           );
                         },
-                        child: Text('Calcular Costo Total'),
                         style: ButtonStyle(
                           backgroundColor:
-                              MaterialStateProperty.all<Color>(Colors.black),
+                              WidgetStateProperty.all<Color>(Colors.black),
                           foregroundColor:
-                              MaterialStateProperty.all<Color>(Colors.white),
+                              WidgetStateProperty.all<Color>(Colors.white),
                         ),
+                        child: const Text('Calcular Costo Total'),
                       ),
-                      SizedBox(height: 10),
+                      const SizedBox(height: 10),
                       ElevatedButton(
                         onPressed: _enviarNotificacion,
-                        child: Text('Enviar Notificación'),
                         style: ButtonStyle(
                           backgroundColor:
-                              MaterialStateProperty.all<Color>(Colors.black),
+                              WidgetStateProperty.all<Color>(Colors.black),
                           foregroundColor:
-                              MaterialStateProperty.all<Color>(Colors.white),
+                              WidgetStateProperty.all<Color>(Colors.white),
                         ),
+                        child: const Text('Enviar Notificación'),
                       ),
-                      SizedBox(height: 10),
+                      const SizedBox(height: 10),
                       if (_costoTotal > 0) Text('Costo Total: $_costoTotal'),
                     ],
                   ],

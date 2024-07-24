@@ -32,7 +32,11 @@ final routesConfig = GoRouter(
     ),
     GoRoute(
       path: AppRoutes.productores,
-      builder: (context, state) => const Productores(),
+      builder: (context, state) {
+        print(state);
+        return Productores(
+            userId: int.parse(state.uri.queryParameters["user_id"].toString()));
+      },
     ),
     GoRoute(
       path: AppRoutes.recolectores,

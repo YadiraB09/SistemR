@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class Registrar extends StatefulWidget {
-  const Registrar({Key? key}) : super(key: key);
+  const Registrar({super.key});
 
   @override
   _RegistrarState createState() => _RegistrarState();
@@ -61,7 +61,7 @@ class _RegistrarState extends State<Registrar> {
 
     if (nombre.isEmpty || cedula.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Por favor ingrese todos los campos')),
+        const SnackBar(content: Text('Por favor ingrese todos los campos')),
       );
       return;
     }
@@ -79,7 +79,7 @@ class _RegistrarState extends State<Registrar> {
     if (response.error == null) {
       _fetchData();
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Productor registrado exitosamente')),
+        const SnackBar(content: Text('Productor registrado exitosamente')),
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -116,7 +116,7 @@ class _RegistrarState extends State<Registrar> {
 
     if (response.error == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Litros registrados exitosamente')),
+        const SnackBar(content: Text('Litros registrados exitosamente')),
       );
       _fetchData();
     } else {
@@ -148,7 +148,7 @@ class _RegistrarState extends State<Registrar> {
 
     if (response.error == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Litros actualizados correctamente')),
+        const SnackBar(content: Text('Litros actualizados correctamente')),
       );
       _fetchData();
     } else {
@@ -171,7 +171,7 @@ class _RegistrarState extends State<Registrar> {
 
     if (response.error == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Litro eliminado correctamente')),
+        const SnackBar(content: Text('Litro eliminado correctamente')),
       );
       _fetchData();
     } else {
@@ -198,7 +198,7 @@ class _RegistrarState extends State<Registrar> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(
+        title: const Text(
           "Registrar",
           style: TextStyle(
             fontWeight: FontWeight.bold,
@@ -210,13 +210,15 @@ class _RegistrarState extends State<Registrar> {
             onPressed: () {
               Navigator.pushNamed(context, '/calculos');
             },
-            child: Text('Cálculos', style: TextStyle(color: Colors.white)),
+            child:
+                const Text('Cálculos', style: TextStyle(color: Colors.white)),
           ),
           TextButton(
             onPressed: () {
               Navigator.pushNamed(context, '/estadisticas');
             },
-            child: Text('Estadísticas', style: TextStyle(color: Colors.white)),
+            child: const Text('Estadísticas',
+                style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -228,45 +230,43 @@ class _RegistrarState extends State<Registrar> {
             children: [
               TextField(
                 controller: _nombreController,
-                decoration: InputDecoration(
+                decoration: const InputDecoration(
                   labelText: 'Nombre del Productor',
                 ),
               ),
-              SizedBox(height: 20),
+              const SizedBox(height: 20),
               TextField(
                 controller: _cedulaController,
-                decoration: InputDecoration(
+                decoration: const InputDecoration(
                   labelText: 'Cédula del Productor',
                 ),
                 keyboardType: TextInputType.number,
               ),
-              SizedBox(height: 20),
+              const SizedBox(height: 20),
               ElevatedButton(
                 onPressed: _registrarProductor,
-                child: Text('Registrar Productor'),
                 style: ButtonStyle(
-                  backgroundColor:
-                      MaterialStateProperty.all<Color>(Colors.black),
-                  foregroundColor:
-                      MaterialStateProperty.all<Color>(Colors.white),
+                  backgroundColor: WidgetStateProperty.all<Color>(Colors.black),
+                  foregroundColor: WidgetStateProperty.all<Color>(Colors.white),
                 ),
+                child: const Text('Registrar Productor'),
               ),
-              SizedBox(height: 20),
+              const SizedBox(height: 20),
               TextField(
                 controller: _searchController,
                 decoration: InputDecoration(
                   labelText: 'Buscar Productor por Nombre o Cédula',
                   suffixIcon: IconButton(
-                    icon: Icon(Icons.search),
+                    icon: const Icon(Icons.search),
                     onPressed: _searchProductor,
                   ),
                 ),
               ),
-              SizedBox(height: 20),
+              const SizedBox(height: 20),
               ListView.builder(
                 shrinkWrap: true, // Permite que ListView se ajuste al contenido
                 physics:
-                    NeverScrollableScrollPhysics(), // Desactiva el desplazamiento
+                    const NeverScrollableScrollPhysics(), // Desactiva el desplazamiento
                 itemCount: _productoresFiltrados.length,
                 itemBuilder: (context, index) {
                   final productor = _productoresFiltrados[index];
@@ -285,8 +285,8 @@ class _RegistrarState extends State<Registrar> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text('Cédula: $cedula'),
-                          SizedBox(height: 5),
-                          Text('Litros Registrados:'),
+                          const SizedBox(height: 5),
+                          const Text('Litros Registrados:'),
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: produccionesProductor
@@ -297,7 +297,7 @@ class _RegistrarState extends State<Registrar> {
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
                                           IconButton(
-                                            icon: Icon(Icons.edit),
+                                            icon: const Icon(Icons.edit),
                                             onPressed: () {
                                               _litrosEditarController.text =
                                                   prod['litros'].toString();
@@ -305,11 +305,13 @@ class _RegistrarState extends State<Registrar> {
                                                 context: context,
                                                 builder: (context) =>
                                                     AlertDialog(
-                                                  title: Text('Editar Litros'),
+                                                  title: const Text(
+                                                      'Editar Litros'),
                                                   content: TextField(
                                                     controller:
                                                         _litrosEditarController,
-                                                    decoration: InputDecoration(
+                                                    decoration:
+                                                        const InputDecoration(
                                                       labelText:
                                                           'Nuevo valor de litros',
                                                     ),
@@ -321,7 +323,8 @@ class _RegistrarState extends State<Registrar> {
                                                       onPressed: () {
                                                         Navigator.pop(context);
                                                       },
-                                                      child: Text('Cancelar'),
+                                                      child: const Text(
+                                                          'Cancelar'),
                                                     ),
                                                     ElevatedButton(
                                                       onPressed: () {
@@ -329,19 +332,20 @@ class _RegistrarState extends State<Registrar> {
                                                             prod['id']);
                                                         Navigator.pop(context);
                                                       },
-                                                      child: Text('Guardar'),
                                                       style: ButtonStyle(
                                                         backgroundColor:
-                                                            MaterialStateProperty
+                                                            WidgetStateProperty
                                                                 .all<Color>(
                                                                     Colors
                                                                         .black),
                                                         foregroundColor:
-                                                            MaterialStateProperty
+                                                            WidgetStateProperty
                                                                 .all<Color>(
                                                                     Colors
                                                                         .white),
                                                       ),
+                                                      child:
+                                                          const Text('Guardar'),
                                                     ),
                                                   ],
                                                 ),
@@ -349,21 +353,23 @@ class _RegistrarState extends State<Registrar> {
                                             },
                                           ),
                                           IconButton(
-                                            icon: Icon(Icons.delete),
+                                            icon: const Icon(Icons.delete),
                                             onPressed: () {
                                               showDialog(
                                                 context: context,
                                                 builder: (context) =>
                                                     AlertDialog(
-                                                  title: Text('Eliminar Litro'),
-                                                  content: Text(
+                                                  title: const Text(
+                                                      'Eliminar Litro'),
+                                                  content: const Text(
                                                       '¿Estás seguro de que deseas eliminar este registro de litros?'),
                                                   actions: [
                                                     TextButton(
                                                       onPressed: () {
                                                         Navigator.pop(context);
                                                       },
-                                                      child: Text('Cancelar'),
+                                                      child: const Text(
+                                                          'Cancelar'),
                                                     ),
                                                     ElevatedButton(
                                                       onPressed: () {
@@ -371,19 +377,20 @@ class _RegistrarState extends State<Registrar> {
                                                             prod['id']);
                                                         Navigator.pop(context);
                                                       },
-                                                      child: Text('Eliminar'),
                                                       style: ButtonStyle(
                                                         backgroundColor:
-                                                            MaterialStateProperty
+                                                            WidgetStateProperty
                                                                 .all<Color>(
                                                                     Colors
                                                                         .black),
                                                         foregroundColor:
-                                                            MaterialStateProperty
+                                                            WidgetStateProperty
                                                                 .all<Color>(
                                                                     Colors
                                                                         .white),
                                                       ),
+                                                      child: const Text(
+                                                          'Eliminar'),
                                                     ),
                                                   ],
                                                 ),
@@ -395,26 +402,26 @@ class _RegistrarState extends State<Registrar> {
                                     ))
                                 .toList(),
                           ),
-                          SizedBox(height: 10),
+                          const SizedBox(height: 10),
                           TextField(
                             controller: _litrosController,
-                            decoration: InputDecoration(
+                            decoration: const InputDecoration(
                               labelText: 'Litros Comprados',
                             ),
                             keyboardType: TextInputType.number,
                           ),
-                          SizedBox(height: 5),
+                          const SizedBox(height: 5),
                           ElevatedButton(
                             onPressed: () {
                               _registrarLitros(id);
                             },
-                            child: Text('Registrar Litros'),
                             style: ButtonStyle(
-                              backgroundColor: MaterialStateProperty.all<Color>(
-                                  Colors.black),
-                              foregroundColor: MaterialStateProperty.all<Color>(
-                                  Colors.white),
+                              backgroundColor:
+                                  WidgetStateProperty.all<Color>(Colors.black),
+                              foregroundColor:
+                                  WidgetStateProperty.all<Color>(Colors.white),
                             ),
+                            child: const Text('Registrar Litros'),
                           ),
                         ],
                       ),
