@@ -135,7 +135,7 @@ class _RegistrarState extends State<Registrar> {
 
     if (nuevoLitro <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Por favor ingrese litros válidos')),
+        const SnackBar(content: Text('Por favor ingrese litros válidos')),
       );
       return;
     }
@@ -185,12 +185,31 @@ class _RegistrarState extends State<Registrar> {
 
   void _searchProductor() {
     final query = _searchController.text.toLowerCase();
+
+    if (query.isEmpty) {
+      // Mensaje cuando el campo de búsqueda está vacío
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Por favor ingrese un nombre o cédula')),
+      );
+      setState(() {
+        _productoresFiltrados = _productores;
+      });
+      return;
+    }
+
     setState(() {
       _productoresFiltrados = _productores.where((productor) {
         final nombre = productor['nombre'].toLowerCase();
         final cedula = productor['cedula'];
         return nombre.contains(query) || cedula.contains(query);
       }).toList();
+
+      if (_productoresFiltrados.isEmpty) {
+        // Mensaje cuando no se encuentran productores
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Productor no encontrado')),
+        );
+      }
     });
   }
 
